@@ -1,0 +1,53 @@
+{
+  "version": "1.0",
+  "effective_date": "2026-05-01",
+  "currency": "LKR",
+  "billing_period_days": 30,
+  "description": "Sri Lankan CEB Domestic Tariff - May 2026",
+  "fixed_charge": 300.00,
+"sscl": {
+    "name": "Sustainable System and Cost of Living Levy",
+    "rate_per_kwh": 0.0475,
+    "description": "Applied on total energy charge (after consumption-based rates)"
+  },
+  "consumption_bands": [
+    {
+      "band_name": "Band 1 (Low)",
+      "lower_limit": 0,
+      "upper_limit": 30,
+      "rate_per_kwh": 3.86
+    },
+    {
+      "band_name": "Band 2 (Medium)",
+      "lower_limit": 31,
+      "upper_limit": 60,
+      "rate_per_kwh": 4.48
+    },
+    {
+      "band_name": "Band 3 (High)",
+      "lower_limit": 61,
+      "upper_limit": 90,
+      "rate_per_kwh": 5.23
+    },
+    {
+      "band_name": "Band 4 (Very High)",
+      "lower_limit": 91,
+      "upper_limit": 120,
+      "rate_per_kwh": 6.10
+    },
+    {
+      "band_name": "Band 5 (Premium)",
+      "lower_limit": 121,
+      "upper_limit": 999999,
+      "rate_per_kwh": 6.98
+    }
+  ],
+  "tariff_proximity": {
+    "relevant_boundaries": [30, 60, 90, 120],
+    "show_next_tier_savings": true
+  },
+  "rounding": {
+    "round_to_nearest_cent": true,
+    "precision": 2
+  }
+}

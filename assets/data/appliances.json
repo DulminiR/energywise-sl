@@ -1,0 +1,334 @@
+[
+  {
+    "id": "refrigerator",
+    "name": "Refrigerator (Double Door / Single)",
+    "physics_load": "thermostatic",
+    "input_type": "always_on",
+    "allowed_input_types": [
+      "always_on"
+    ],
+    "default_wattage": 150,
+    "default_duty_cycle": 0.35,
+    "requires_age_toggle": true,
+    "age_multipliers": {
+      "old": 1.35,
+      "standard": 1.00,
+      "inverter": 0.65
+    },
+    "catalog_group": "Kitchen"
+  },
+  {
+    "id": "air_conditioner_12k",
+    "name": "Air Conditioner (12,000 BTU)",
+    "physics_load": "thermostatic",
+    "input_type": "daily_hours",
+    "allowed_input_types": [
+      "daily_hours",
+      "weekly_hours"
+    ],
+    "default_wattage": 1200,
+    "default_duty_cycle": 0.50,
+    "default_daily_hours": 5,
+    "requires_age_toggle": true,
+    "age_multipliers": {
+      "old": 1.25,
+      "standard": 1.00,
+      "inverter": 0.60
+    },
+    "catalog_group": "Cooling"
+  },
+  {
+    "id": "ceiling_fan",
+    "name": "Ceiling Fan",
+    "physics_load": "constant",
+    "input_type": "daily_hours",
+    "allowed_input_types": [
+      "daily_hours",
+      "weekly_hours"
+    ],
+    "default_wattage": 75,
+    "default_duty_cycle": 1.00,
+    "default_daily_hours": 8,
+    "requires_age_toggle": false,
+    "age_multipliers": {
+      "standard": 1.00
+    },
+    "catalog_group": "Cooling"
+  },
+  {
+    "id": "table_fan",
+    "name": "Table / Standing Fan",
+    "physics_load": "constant",
+    "input_type": "daily_hours",
+    "allowed_input_types": [
+      "daily_hours",
+      "weekly_hours"
+    ],
+    "default_wattage": 50,
+    "default_duty_cycle": 1.00,
+    "default_daily_hours": 6,
+    "requires_age_toggle": false,
+    "age_multipliers": {
+      "standard": 1.00
+    },
+    "catalog_group": "Cooling"
+  },
+  {
+    "id": "rice_cooker",
+    "name": "Rice Cooker",
+    "physics_load": "event",
+    "input_type": "weekly_cycles",
+    "allowed_input_types": [
+      "weekly_cycles"
+    ],
+    "default_wattage": 700,
+    "default_weekly_cycles": 7,
+    "avg_hours_per_cycle": 0.50,
+    "requires_age_toggle": false,
+    "age_multipliers": {
+      "standard": 1.00
+    },
+    "catalog_group": "Kitchen"
+  },
+  {
+    "id": "electric_kettle",
+    "name": "Electric Kettle / Jug",
+    "physics_load": "event",
+    "input_type": "weekly_cycles",
+    "allowed_input_types": [
+      "weekly_cycles"
+    ],
+    "default_wattage": 1500,
+    "default_weekly_cycles": 14,
+    "avg_hours_per_cycle": 0.10,
+    "requires_age_toggle": false,
+    "age_multipliers": {
+      "standard": 1.00
+    },
+    "catalog_group": "Kitchen"
+  },
+  {
+    "id": "microwave_oven",
+    "name": "Microwave Oven",
+    "physics_load": "event",
+    "input_type": "weekly_cycles",
+    "allowed_input_types": [
+      "weekly_cycles"
+    ],
+    "default_wattage": 1200,
+    "default_weekly_cycles": 7,
+    "avg_hours_per_cycle": 0.20,
+    "requires_age_toggle": false,
+    "age_multipliers": {
+      "standard": 1.00
+    },
+    "catalog_group": "Kitchen"
+  },
+  {
+    "id": "induction_cooker",
+    "name": "Electric / Induction Cooker",
+    "physics_load": "constant",
+    "input_type": "daily_hours",
+    "allowed_input_types": [
+      "daily_hours",
+      "weekly_hours"
+    ],
+    "default_wattage": 1800,
+    "default_duty_cycle": 0.80,
+    "default_daily_hours": 1,
+    "requires_age_toggle": false,
+    "age_multipliers": {
+      "standard": 1.00
+    },
+    "catalog_group": "Kitchen"
+  },
+  {
+    "id": "pop_toaster",
+    "name": "Pop-up Bread Toaster",
+    "physics_load": "event",
+    "input_type": "weekly_cycles",
+    "allowed_input_types": [
+      "weekly_cycles"
+    ],
+    "default_wattage": 800,
+    "default_weekly_cycles": 5,
+    "avg_hours_per_cycle": 0.10,
+    "requires_age_toggle": false,
+    "age_multipliers": {
+      "standard": 1.00
+    },
+    "catalog_group": "Kitchen"
+  },
+  {
+    "id": "electric_oven",
+    "name": "Electric Benchtop Oven",
+    "physics_load": "event",
+    "input_type": "weekly_cycles",
+    "allowed_input_types": [
+      "weekly_cycles"
+    ],
+    "default_wattage": 2000,
+    "default_weekly_cycles": 2,
+    "avg_hours_per_cycle": 1.00,
+    "requires_age_toggle": false,
+    "age_multipliers": {
+      "standard": 1.00
+    },
+    "catalog_group": "Kitchen"
+  },
+  {
+    "id": "blender_grinder",
+    "name": "Blender / Food Mixer",
+    "physics_load": "event",
+    "input_type": "weekly_cycles",
+    "allowed_input_types": [
+      "weekly_cycles"
+    ],
+    "default_wattage": 400,
+    "default_weekly_cycles": 4,
+    "avg_hours_per_cycle": 0.15,
+    "requires_age_toggle": false,
+    "age_multipliers": {
+      "standard": 1.00
+    },
+    "catalog_group": "Kitchen"
+  },
+  {
+    "id": "washing_machine",
+    "name": "Washing Machine",
+    "physics_load": "event",
+    "input_type": "weekly_cycles",
+    "allowed_input_types": [
+      "weekly_cycles"
+    ],
+    "default_wattage": 500,
+    "default_weekly_cycles": 3,
+    "avg_hours_per_cycle": 1.00,
+    "requires_age_toggle": false,
+    "age_multipliers": {
+      "standard": 1.00
+    },
+    "catalog_group": "Laundry & Utility"
+  },
+  {
+    "id": "electric_iron",
+    "name": "Electric Clothes Iron",
+    "physics_load": "event",
+    "input_type": "weekly_cycles",
+    "allowed_input_types": [
+      "weekly_cycles"
+    ],
+    "default_wattage": 1000,
+    "default_weekly_cycles": 2,
+    "avg_hours_per_cycle": 1.00,
+    "requires_age_toggle": false,
+    "age_multipliers": {
+      "standard": 1.00
+    },
+    "catalog_group": "Laundry & Utility"
+  },
+  {
+    "id": "hot_water_shower",
+    "name": "Hot Water Shower Heater",
+    "physics_load": "event",
+    "input_type": "weekly_cycles",
+    "allowed_input_types": [
+      "weekly_cycles"
+    ],
+    "default_wattage": 3500,
+    "default_weekly_cycles": 14,
+    "avg_hours_per_cycle": 0.25,
+    "requires_age_toggle": false,
+    "age_multipliers": {
+      "standard": 1.00
+    },
+    "catalog_group": "Laundry & Utility"
+  },
+  {
+    "id": "water_pump",
+    "name": "Water Pump (1.0 HP)",
+    "physics_load": "event",
+    "input_type": "weekly_cycles",
+    "allowed_input_types": [
+      "weekly_cycles"
+    ],
+    "default_wattage": 750,
+    "default_weekly_cycles": 7,
+    "avg_hours_per_cycle": 0.50,
+    "requires_age_toggle": false,
+    "age_multipliers": {
+      "standard": 1.00
+    },
+    "catalog_group": "Laundry & Utility"
+  },
+  {
+    "id": "led_tv",
+    "name": "Television (42-inch LED)",
+    "physics_load": "constant",
+    "input_type": "daily_hours",
+    "allowed_input_types": [
+      "daily_hours",
+      "weekly_hours"
+    ],
+    "default_wattage": 80,
+    "default_duty_cycle": 1.00,
+    "default_daily_hours": 4,
+    "requires_age_toggle": false,
+    "age_multipliers": {
+      "standard": 1.00
+    },
+    "catalog_group": "Entertainment & Tech"
+  },
+  {
+    "id": "wifi_router",
+    "name": "Wi-Fi Router",
+    "physics_load": "constant",
+    "input_type": "always_on",
+    "allowed_input_types": [
+      "always_on"
+    ],
+    "default_wattage": 10,
+    "default_duty_cycle": 1.00,
+    "requires_age_toggle": false,
+    "age_multipliers": {
+      "standard": 1.00
+    },
+    "catalog_group": "Entertainment & Tech"
+  },
+  {
+    "id": "led_bulb",
+    "name": "LED Light Bulb (9W)",
+    "physics_load": "constant",
+    "input_type": "daily_hours",
+    "allowed_input_types": [
+      "daily_hours",
+      "weekly_hours"
+    ],
+    "default_wattage": 9,
+    "default_duty_cycle": 1.00,
+    "default_daily_hours": 6,
+    "requires_age_toggle": false,
+    "age_multipliers": {
+      "standard": 1.00
+    },
+    "catalog_group": "Lighting"
+  },
+  {
+    "id": "device_chargers",
+    "name": "Phone / Laptop Chargers (Bundle)",
+    "physics_load": "constant",
+    "input_type": "daily_hours",
+    "allowed_input_types": [
+      "daily_hours",
+      "weekly_hours"
+    ],
+    "default_wattage": 45,
+    "default_duty_cycle": 1.00,
+    "default_daily_hours": 3,
+    "requires_age_toggle": false,
+    "age_multipliers": {
+      "standard": 1.00
+    },
+    "catalog_group": "Entertainment & Tech"
+  }
+]
