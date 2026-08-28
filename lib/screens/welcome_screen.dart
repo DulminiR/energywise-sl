@@ -74,6 +74,7 @@ class WelcomeScreen extends StatelessWidget {
                   children: [
                     const Text(
                       'Understand your electricity.',
+                      textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 32,
                         fontWeight: FontWeight.bold,

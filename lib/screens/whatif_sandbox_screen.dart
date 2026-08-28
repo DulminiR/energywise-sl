@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import '../models/app_state.dart';
 import '../models/household_appliance.dart';
 import '../routes/app_routes.dart';
-import '../services/ai_advisor_service_mock.dart';
 import '../services/energy_calculation_engine.dart';
 import '../services/tariff_engine.dart';
 import '../services/appliance_service.dart';

@@ -4,11 +4,12 @@ import 'package:provider/provider.dart';
 import '../models/app_state.dart';
 import '../models/ai_advisor_payload.dart';
 import '../routes/app_routes.dart';
-import '../services/ai_advisor_service_mock.dart';
+import '../services/ai_advisor_service_gemini.dart';
 import '../services/energy_calculation_engine.dart';
 import '../services/tariff_engine.dart';
 import '../services/appliance_service.dart';
 import '../widgets/reusable_components.dart';
+import 'ai_advisor_chat_screen.dart';
 
 /// AI Advisor screen - displays ranked recommendations and chat.
 /// Shows personalized action plan based on household data.
@@ -20,7 +21,7 @@ class AIAdvisorScreen extends StatefulWidget {
 }
 
 class _AIAdvisorScreenState extends State<AIAdvisorScreen> {
-  final AIAdvisorServiceMock _advisorService = AIAdvisorServiceMock();
+  final AIAdvisorServiceGemini _advisorService = AIAdvisorServiceGemini();
   final EnergyCalculationEngine _energyEngine = EnergyCalculationEngine();
   final TariffEngine _tariffEngine = TariffEngine();
   final ApplianceService _applianceService = ApplianceService();
@@ -207,47 +208,6 @@ class _AIAdvisorScreenState extends State<AIAdvisorScreen> {
     return monthlyKwh;
   }
 
-  /// Send chat message
-  void _sendChatMessage(String message) {
-    if (message.trim().isEmpty) return;
-
-    setState(() {
-      _chatMessages.add(
-        ChatMessage(text: message, isUser: true, timestamp: DateTime.now()),
-      );
-    });
-
-    _chatController.clear();
-
-    // Simulate AI response
-    Future.delayed(const Duration(milliseconds: 500), () {
-      setState(() {
-        _chatMessages.add(
-          ChatMessage(
-            text: _getAIResponse(message),
-            isUser: false,
-            timestamp: DateTime.now(),
-          ),
-        );
-      });
-    });
-  }
-
-  /// Get mock AI response based on question
-  String _getAIResponse(String question) {
-    final lower = question.toLowerCase();
-
-    if (lower.contains('save')) {
-      return 'Your biggest opportunity is reducing AC usage. Even cutting 2 hours per day could save you LKR 720 monthly!';
-    } else if (lower.contains('tariff') || lower.contains('band')) {
-      return 'You\'re in Band 4 (Very High). Reducing to 120 kWh would move you to Band 3 and save approximately LKR 200/month on rate differences alone.';
-    } else if (lower.contains('water') || lower.contains('hot')) {
-      return 'Hot water heating is your second-biggest cost. Consider shorter showers or lower temperatures to save LKR 300-400/month.';
-    } else {
-      return 'I can help with your energy bill, appliance usage, tariff details, and cost-saving recommendations. What else would you like to know?';
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -265,13 +225,69 @@ class _AIAdvisorScreenState extends State<AIAdvisorScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
       appBar: CustomAppBar(title: 'AI Energy Advisor', showBackButton: false),
-      body: _showChat ? _buildChatView() : _buildRecommendationsView(),
-      bottomNavigationBar: BottomNav(
-        currentRoute: AppRoutes.aiAdvisor,
-        onNavigate: (route) {
-          Navigator.pushNamed(context, route);
-        },
+      body: _buildRecommendationsView(),
+      bottomNavigationBar: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: PrimaryButton(
+              label: 'Ask Question',
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => AIAdvisorChatScreen(
+                      payload: _buildPayload(), // Pass the data to chat
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          BottomNav(
+            currentRoute: AppRoutes.aiAdvisor,
+            onNavigate: (route) {
+              Navigator.pushNamed(context, route);
+            },
+          ),
+        ],
       ),
+    );
+  }
+
+  /// Build payload for chat screen
+  AIAdvisorPayload _buildPayload() {
+    final appState = context.read<AppState>();
+    return AIAdvisorPayload(
+      household: HouseholdData(
+        archetype: appState.selectedArchetype ?? 'standard_house',
+        selectedAppliances: [],
+      ),
+      billing: BillingData(
+        monthlyKwh: appState.totalMonthlyKwh ?? 0,
+        estimatedBillLkr: appState.estimatedBillLkr ?? 0,
+      ),
+      tariffStatus: TariffStatusData(
+        currentBand: 3,
+        bandName: 'Band 3',
+        bandRateLkrPerKwh: 5.23,
+        remainingKwhInBand: 30,
+        kwhToNextLowerBand: 0,
+      ),
+      topConsumers:
+          _recommendations?.actionPlan
+              .map(
+                (item) => ApplianceConsumerData(
+                  name: item.appliance,
+                  monthlyKwh: 0,
+                  monthlyCostLkr: item.savingsLkr,
+                  percentageOfBill: 0,
+                ),
+              )
+              .toList() ??
+          [],
+      whatIfScenarios: [],
     );
   }
 
@@ -323,18 +339,17 @@ class _AIAdvisorScreenState extends State<AIAdvisorScreen> {
             const SizedBox(height: 24),
 
             // Chat Button
-            SizedBox(
-              width: double.infinity,
-              child: SecondaryButton(
-                label: 'Ask Questions',
-                onPressed: () {
-                  setState(() {
-                    _showChat = true;
-                  });
-                },
-              ),
-            ),
-
+            //     SizedBox(
+            //       width: double.infinity,
+            //       child: SecondaryButton(
+            //         label: 'Ask Questions',
+            //         onPressed: () {
+            //           setState(() {
+            //             _showChat = true;
+            //           });
+            //         },
+            //       ),
+            //     ),
             const SizedBox(height: 40),
           ],
         ),
@@ -535,133 +550,6 @@ class _AIAdvisorScreenState extends State<AIAdvisorScreen> {
                 ),
               ),
             ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Build chat view
-  Widget _buildChatView() {
-    return Column(
-      children: [
-        Expanded(
-          child: ListView.builder(
-            reverse: true,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            itemCount: _chatMessages.length,
-            itemBuilder: (context, index) {
-              final message = _chatMessages[_chatMessages.length - 1 - index];
-              return _buildChatBubble(message);
-            },
-          ),
-        ),
-        _buildChatInput(),
-      ],
-    );
-  }
-
-  /// Build chat bubble
-  Widget _buildChatBubble(ChatMessage message) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        mainAxisAlignment: message.isUser
-            ? MainAxisAlignment.end
-            : MainAxisAlignment.start,
-        children: [
-          if (!message.isUser)
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: const Color(0xFFE0F2F1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(
-                Icons.smart_toy,
-                size: 16,
-                color: Color(0xFF005F54),
-              ),
-            ),
-          const SizedBox(width: 8),
-          Container(
-            constraints: BoxConstraints(
-              maxWidth: MediaQuery.of(context).size.width * 0.7,
-            ),
-            decoration: BoxDecoration(
-              color: message.isUser
-                  ? const Color(0xFF005F54)
-                  : const Color(0xFFF5F5F5),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Text(
-              message.text,
-              style: TextStyle(
-                fontSize: 13,
-                color: message.isUser ? Colors.white : Colors.grey[800],
-                height: 1.4,
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          if (message.isUser)
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: const Color(0xFF005F54),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(Icons.person, size: 16, color: Colors.white),
-            ),
-        ],
-      ),
-    );
-  }
-
-  /// Build chat input
-  Widget _buildChatInput() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: Colors.grey[200]!, width: 1)),
-      ),
-      padding: const EdgeInsets.all(12),
-      child: Row(
-        children: [
-          Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                color: const Color(0xFFF5F5F5),
-                borderRadius: BorderRadius.circular(24),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: TextField(
-                controller: _chatController,
-                maxLines: null,
-                decoration: InputDecoration(
-                  hintText: 'Ask a question...',
-                  hintStyle: TextStyle(color: Colors.grey[400]),
-                  border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          GestureDetector(
-            onTap: () => _sendChatMessage(_chatController.text),
-            child: Container(
-              width: 40,
-              height: 40,
-              decoration: const BoxDecoration(
-                color: Color(0xFF005F54),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.send, color: Colors.white, size: 18),
-            ),
           ),
         ],
       ),
