@@ -98,7 +98,7 @@ IMPORTANT: Answer in 2-3 sentences MAX. Be direct and practical. Reference speci
           ],
           'generationConfig': {
             'temperature': 0.7,
-            'maxOutputTokens': 1000, // Increased from 500 for better answers
+            'maxOutputTokens': 3000, // Increased from 500 for better answers
           },
         }),
       );

@@ -9,7 +9,7 @@ import '../services/tariff_engine.dart';
 import '../services/appliance_service.dart';
 import '../widgets/reusable_components.dart';
 
-/// What-If Sandbox screen with proper data persistence.
+/// What-If Sandbox screen - simplified for current model
 class WhatIfSandboxScreen extends StatefulWidget {
   const WhatIfSandboxScreen({Key? key}) : super(key: key);
 
@@ -25,13 +25,13 @@ class _WhatIfSandboxScreenState extends State<WhatIfSandboxScreen> {
   double _currentBill = 0;
   double _currentKwh = 0;
 
-  // What-If state (starts as copy of current)
+  // What-If state (copy of current)
   late List<HouseholdAppliance> _whatIfAppliances;
   double _whatIfBill = 0;
   double _whatIfKwh = 0;
   bool _isLoading = true;
 
-  // Track which appliances are pinned for quick adjustment
+  // Track which appliances are pinned
   late Set<String> _pinnedAppliances;
   late Map<String, double> _applianceKwhMap;
 
@@ -41,20 +41,18 @@ class _WhatIfSandboxScreenState extends State<WhatIfSandboxScreen> {
     _initializeWhatIf();
   }
 
-  /// Initialize what-if with ACTUAL current data from AppState
   Future<void> _initializeWhatIf() async {
     try {
       await _tariffEngine.loadTariffConfig();
 
       final appState = context.read<AppState>();
 
-      // Load CURRENT values (from Appliance Tuning screen)
       _currentBill = appState.estimatedBillLkr ?? 0;
       _currentKwh = appState.totalMonthlyKwh ?? 0;
 
       print('DEBUG: Current kWh = $_currentKwh, Bill = $_currentBill');
 
-      // Create COPY of current appliances for what-if modification
+      // Deep copy appliances
       _whatIfAppliances = appState.householdAppliances
           .map(
             (ha) => HouseholdAppliance(
@@ -70,11 +68,7 @@ class _WhatIfSandboxScreenState extends State<WhatIfSandboxScreen> {
           )
           .toList();
 
-      print(
-        'DEBUG: Loaded ${_whatIfAppliances.length} appliances from AppState',
-      );
-
-      // Calculate kWh for each appliance
+      // Calculate kWh map
       final appliances = await _applianceService.loadAppliances();
       final catalogMap = {for (var a in appliances) a.id: a};
 
@@ -88,12 +82,11 @@ class _WhatIfSandboxScreenState extends State<WhatIfSandboxScreen> {
         _applianceKwhMap[ha.applianceId] = kwh;
       }
 
-      // Pin top 5 appliances by kWh
+      // Pin top 5 (deduplicated)
       final sortedByKwh = _applianceKwhMap.entries.toList()
         ..sort((a, b) => b.value.compareTo(a.value));
       _pinnedAppliances = sortedByKwh.take(5).map((e) => e.key).toSet();
 
-      // Initial what-if calculation
       await _recalculateWhatIf();
 
       setState(() {
@@ -109,7 +102,6 @@ class _WhatIfSandboxScreenState extends State<WhatIfSandboxScreen> {
     }
   }
 
-  /// Recalculate what-if bill based on current adjustments
   Future<void> _recalculateWhatIf() async {
     try {
       final appliances = await _applianceService.loadAppliances();
@@ -133,7 +125,6 @@ class _WhatIfSandboxScreenState extends State<WhatIfSandboxScreen> {
     }
   }
 
-  /// Update an appliance in what-if
   void _updateWhatIfAppliance(int index, HouseholdAppliance updated) {
     setState(() {
       _whatIfAppliances[index] = updated;
@@ -141,31 +132,39 @@ class _WhatIfSandboxScreenState extends State<WhatIfSandboxScreen> {
     _recalculateWhatIf();
   }
 
-  /// Update quantity of pinned appliance
-  void _updateQuantity(String applianceId, double newQuantity) {
-    final index = _whatIfAppliances.indexWhere(
-      (a) => a.applianceId == applianceId,
+  void _updateUsage(
+    int index,
+    HouseholdAppliance ha,
+    double newValue,
+    String type,
+  ) {
+    final updated = HouseholdAppliance(
+      applianceId: ha.applianceId,
+      name: ha.name,
+      ageSelection: ha.ageSelection,
+      quantity: ha.quantity,
+      isEnabled: ha.isEnabled,
+      dailyHours: type == 'daily' ? newValue : ha.dailyHours,
+      weeklyHours: type == 'weekly' ? newValue : ha.weeklyHours,
+      weeklyCycles: type == 'cycles' ? newValue : ha.weeklyCycles,
     );
-    if (index >= 0) {
-      _updateWhatIfAppliance(
-        index,
-        _whatIfAppliances[index].copyWith(quantity: newQuantity),
-      );
-    }
+    _updateWhatIfAppliance(index, updated);
   }
 
-  /// Toggle pinning an appliance
-  void _togglePinnedAppliance(String applianceId) {
-    setState(() {
-      if (_pinnedAppliances.contains(applianceId)) {
-        _pinnedAppliances.remove(applianceId);
-      } else {
-        _pinnedAppliances.add(applianceId);
-      }
-    });
+  void _updateQuantity(int index, HouseholdAppliance ha, double newQty) {
+    final updated = HouseholdAppliance(
+      applianceId: ha.applianceId,
+      name: ha.name,
+      ageSelection: ha.ageSelection,
+      quantity: newQty,
+      isEnabled: ha.isEnabled,
+      dailyHours: ha.dailyHours,
+      weeklyHours: ha.weeklyHours,
+      weeklyCycles: ha.weeklyCycles,
+    );
+    _updateWhatIfAppliance(index, updated);
   }
 
-  /// Reset to original values
   void _resetToActual() {
     final appState = context.read<AppState>();
     _whatIfAppliances = appState.householdAppliances
@@ -185,13 +184,11 @@ class _WhatIfSandboxScreenState extends State<WhatIfSandboxScreen> {
     _recalculateWhatIf();
   }
 
-  /// Apply changes and go to AI Advisor
   void _applyChanges() {
     context.read<AppState>().setHouseholdAppliances(_whatIfAppliances);
     Navigator.pushNamed(context, AppRoutes.aiAdvisor);
   }
 
-  /// Calculate kWh for appliance
   double _calculateApplianceKwh(dynamic appliance, HouseholdAppliance ha) {
     final wattage = appliance.defaultWattage;
     final dutyCycle = appliance.defaultDutyCycle;
@@ -260,7 +257,7 @@ class _WhatIfSandboxScreenState extends State<WhatIfSandboxScreen> {
         ? (savings / _currentBill) * 100
         : 0;
 
-    // Get pinned appliances
+    // Get pinned appliances (no duplicates)
     final pinnedAppliances = _whatIfAppliances
         .where(
           (ha) => ha.isEnabled && _pinnedAppliances.contains(ha.applianceId),
@@ -278,151 +275,165 @@ class _WhatIfSandboxScreenState extends State<WhatIfSandboxScreen> {
         title: 'What-If Sandbox',
         showBackButton: false,
         actionWidget: Padding(
-          padding: const EdgeInsets.only(right: 16),
-          child: IconButton(
-            icon: const Icon(Icons.refresh, color: Color(0xFF005F54)),
-            onPressed: _resetToActual,
+          padding: const EdgeInsets.only(right: 8),
+          child: GestureDetector(
+            onTap: _resetToActual,
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              child: const Icon(
+                Icons.refresh,
+                color: Color(0xFF005F54),
+                size: 20,
+              ),
+            ),
           ),
         ),
       ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Savings Hero
-              Container(
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF005F54), Color(0xFF004D40)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(32),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF005F54).withOpacity(0.2),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
+      body: Column(
+        children: [
+          // Fixed Savings Card
+          Container(
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF005F54), Color(0xFF004D40)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF005F54).withOpacity(0.2),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
                 ),
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Potential Savings',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.white.withOpacity(0.8),
-                        letterSpacing: 0.5,
+              ],
+            ),
+            padding: const EdgeInsets.all(16),
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Potential Savings',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.white.withOpacity(0.8),
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'LKR ${savings.toStringAsFixed(0)}',
+                  style: const TextStyle(
+                    fontSize: 36,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                Text(
+                  '${savingsPercent.toStringAsFixed(1)}% savings',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.white.withOpacity(0.8),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  decoration: BoxDecoration(
+                    border: Border(
+                      top: BorderSide(
+                        color: Colors.white.withOpacity(0.1),
+                        width: 1,
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'LKR ${savings.toStringAsFixed(0)}',
-                      style: const TextStyle(
-                        fontSize: 48,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                    Text(
-                      '${savingsPercent.toStringAsFixed(1)}% savings',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.white.withOpacity(0.8),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    Container(
-                      decoration: BoxDecoration(
-                        border: Border(
-                          top: BorderSide(
-                            color: Colors.white.withOpacity(0.1),
-                            width: 1,
-                          ),
-                        ),
-                      ),
-                      padding: const EdgeInsets.only(top: 16),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  ),
+                  padding: const EdgeInsets.only(top: 12),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Before',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white.withOpacity(0.6),
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'LKR ${_currentBill.toStringAsFixed(0)}',
-                                style: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ],
+                          Text(
+                            'Before',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white.withOpacity(0.6),
+                            ),
                           ),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Text(
-                                'After',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white.withOpacity(0.6),
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'LKR ${_whatIfBill.toStringAsFixed(0)}',
-                                style: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ],
+                          const SizedBox(height: 2),
+                          Text(
+                            'LKR ${_currentBill.toStringAsFixed(0)}',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
                           ),
                         ],
                       ),
-                    ),
-                  ],
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            'After',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white.withOpacity(0.6),
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'LKR ${_whatIfBill.toStringAsFixed(0)}',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-
-              const SizedBox(height: 24),
-
-              // Top Cost Contributors
-              const Text(
-                'Top Cost Contributors',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF999999),
-                  letterSpacing: 0.5,
-                ),
-              ),
-              const SizedBox(height: 12),
-              ...pinnedAppliances.asMap().entries.map((entry) {
-                return _buildAdjustableCard(entry.key, entry.value);
-              }).toList(),
-
-              const SizedBox(height: 40),
-            ],
+              ],
+            ),
           ),
-        ),
+
+          // Scrollable appliances
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Top Cost Contributors',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF999999),
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  ...pinnedAppliances.asMap().entries.map((entry) {
+                    final index = _whatIfAppliances.indexWhere(
+                      (a) => a.applianceId == entry.value.applianceId,
+                    );
+                    if (index < 0) return const SizedBox.shrink();
+                    return _buildAdjustableCard(index, entry.value);
+                  }).toList(),
+
+                  const SizedBox(height: 40),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
       bottomNavigationBar: Column(
         mainAxisSize: MainAxisSize.min,
@@ -445,7 +456,6 @@ class _WhatIfSandboxScreenState extends State<WhatIfSandboxScreen> {
     );
   }
 
-  /// Build adjustable card with quantity and usage controls
   Widget _buildAdjustableCard(int index, HouseholdAppliance ha) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
@@ -454,7 +464,6 @@ class _WhatIfSandboxScreenState extends State<WhatIfSandboxScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -479,7 +488,11 @@ class _WhatIfSandboxScreenState extends State<WhatIfSandboxScreen> {
                   ),
                 ),
                 GestureDetector(
-                  onTap: () => _togglePinnedAppliance(ha.applianceId),
+                  onTap: () {
+                    setState(() {
+                      _pinnedAppliances.remove(ha.applianceId);
+                    });
+                  },
                   child: Container(
                     decoration: BoxDecoration(
                       color: const Color(0xFFE0F2F1),
@@ -498,7 +511,7 @@ class _WhatIfSandboxScreenState extends State<WhatIfSandboxScreen> {
 
             const SizedBox(height: 16),
 
-            // QUANTITY CONTROLS - VISIBLE AND COMPACT
+            // Quantity
             Container(
               decoration: BoxDecoration(
                 color: const Color(0xFFF5F5F5),
@@ -520,10 +533,7 @@ class _WhatIfSandboxScreenState extends State<WhatIfSandboxScreen> {
                     children: [
                       GestureDetector(
                         onTap: ha.quantity > 1
-                            ? () => _updateQuantity(
-                                ha.applianceId,
-                                ha.quantity - 1,
-                              )
+                            ? () => _updateQuantity(index, ha, ha.quantity - 1)
                             : null,
                         child: Container(
                           decoration: BoxDecoration(
@@ -559,10 +569,7 @@ class _WhatIfSandboxScreenState extends State<WhatIfSandboxScreen> {
                       const SizedBox(width: 12),
                       GestureDetector(
                         onTap: ha.quantity < 10
-                            ? () => _updateQuantity(
-                                ha.applianceId,
-                                ha.quantity + 1,
-                              )
+                            ? () => _updateQuantity(index, ha, ha.quantity + 1)
                             : null,
                         child: Container(
                           decoration: BoxDecoration(
@@ -598,7 +605,6 @@ class _WhatIfSandboxScreenState extends State<WhatIfSandboxScreen> {
     );
   }
 
-  /// Build usage slider
   Widget _buildUsageSlider(int index, HouseholdAppliance ha) {
     if (ha.dailyHours != null) {
       return LabeledSlider(
@@ -607,9 +613,7 @@ class _WhatIfSandboxScreenState extends State<WhatIfSandboxScreen> {
         min: 0,
         max: 24,
         suffix: 'hours',
-        onChanged: (value) {
-          _updateWhatIfAppliance(index, ha.copyWith(dailyHours: value));
-        },
+        onChanged: (value) => _updateUsage(index, ha, value, 'daily'),
       );
     } else if (ha.weeklyHours != null) {
       return LabeledSlider(
@@ -618,9 +622,7 @@ class _WhatIfSandboxScreenState extends State<WhatIfSandboxScreen> {
         min: 0,
         max: 48,
         suffix: 'hours',
-        onChanged: (value) {
-          _updateWhatIfAppliance(index, ha.copyWith(weeklyHours: value));
-        },
+        onChanged: (value) => _updateUsage(index, ha, value, 'weekly'),
       );
     } else if (ha.weeklyCycles != null) {
       return LabeledSlider(
@@ -629,9 +631,7 @@ class _WhatIfSandboxScreenState extends State<WhatIfSandboxScreen> {
         min: 0,
         max: 20,
         suffix: 'cycles',
-        onChanged: (value) {
-          _updateWhatIfAppliance(index, ha.copyWith(weeklyCycles: value));
-        },
+        onChanged: (value) => _updateUsage(index, ha, value, 'cycles'),
       );
     }
     return Text(
@@ -641,28 +641,6 @@ class _WhatIfSandboxScreenState extends State<WhatIfSandboxScreen> {
         color: Colors.grey[600],
         fontStyle: FontStyle.italic,
       ),
-    );
-  }
-}
-
-extension HouseholdApplianceCopyWhat on HouseholdAppliance {
-  HouseholdAppliance copyWith({
-    String? ageSelection,
-    double? quantity,
-    bool? isEnabled,
-    double? dailyHours,
-    double? weeklyHours,
-    double? weeklyCycles,
-  }) {
-    return HouseholdAppliance(
-      applianceId: applianceId,
-      name: name,
-      ageSelection: ageSelection ?? this.ageSelection,
-      quantity: quantity ?? this.quantity,
-      isEnabled: isEnabled ?? this.isEnabled,
-      dailyHours: dailyHours ?? this.dailyHours,
-      weeklyHours: weeklyHours ?? this.weeklyHours,
-      weeklyCycles: weeklyCycles ?? this.weeklyCycles,
     );
   }
 }
